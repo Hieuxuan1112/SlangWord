@@ -97,6 +97,7 @@ private void placeComponents(JPanel panel) {
     deleteButton.addActionListener(e -> deleteButtonClicked());
     resetButton.addActionListener(e -> resetButtonClicked());
     randomButton.addActionListener(e -> randomButtonClicked());
+    quizButton.addActionListener(e -> quizButtonClicked());
 }
 private void searchButtonClicked() {
     String keyword = searchTextField.getText().trim();
@@ -284,6 +285,44 @@ private void randomButtonClicked() {
         JOptionPane.showMessageDialog(this, "Từ lóng ngẫu nhiên:\n" + randomSlangWord, "Từ lóng hôm nay", JOptionPane.INFORMATION_MESSAGE);
     } else {
         JOptionPane.showMessageDialog(this, "Từ điển trống rỗng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+    }
+}
+
+private void quizButtonClicked() {
+    List<String> keys = new ArrayList<>(slangDictionary.keySet());
+    if (keys.size() >= 4) {
+        int randomIndex = (int) (Math.random() * keys.size());
+        String correctAnswer = keys.get(randomIndex);
+        String definition = slangDictionary.get(correctAnswer);
+
+        List<String> options = new ArrayList<>();
+        options.add(correctAnswer);
+
+        while (options.size() < 4) {
+            int randomOptionIndex = (int) (Math.random() * keys.size());
+            String randomOption = keys.get(randomOptionIndex);
+            if (!options.contains(randomOption)) {
+                options.add(randomOption);
+            }
+        }
+
+        java.util.Collections.shuffle(options);
+
+        StringBuilder quizMessage = new StringBuilder("Tìm từ lóng cho định nghĩa sau đây:\n\n");
+        quizMessage.append(definition).append("\n\nCác lựa chọn:\n");
+        for (int i = 0; i < options.size(); i++) {
+            quizMessage.append(i + 1).append(". ").append(options.get(i)).append("\n");
+        }
+
+        int userChoice = JOptionPane.showOptionDialog(this, quizMessage.toString(), "Trò chơi đố vui", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE, null, options.toArray(), null);
+
+        if (userChoice >= 0 && userChoice < options.size() && options.get(userChoice).equals(correctAnswer)) {
+            JOptionPane.showMessageDialog(this, "Chính xác! Từ lóng là \"" + correctAnswer + "\".", "Kết quả đố vui", JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            JOptionPane.showMessageDialog(this, "Sai. Từ lóng chính xác là \"" + correctAnswer + "\".", "Kết quả đố vui", JOptionPane.INFORMATION_MESSAGE);
+        }
+    } else {
+        JOptionPane.showMessageDialog(this, "Số lượng từ lóng không đủ để chơi đố vui.", "Lỗi", JOptionPane.ERROR_MESSAGE);
     }
 }
 
