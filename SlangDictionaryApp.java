@@ -1,7 +1,9 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -13,11 +15,13 @@ import javax.swing.JTextField;
 
 public class SlangDictionaryApp extends JFrame {
     private Map<String, String> slangDictionary;
+    private List<String> searchHistory;
     private JTextArea outputTextArea;
     private JTextField searchTextField;
 
     public SlangDictionaryApp() {
         slangDictionary = new HashMap<>();
+        searchHistory = new ArrayList<>();
 
         loadSlangDictionaryFromFile("slang_dictionary.txt");
 
@@ -59,6 +63,8 @@ public class SlangDictionaryApp extends JFrame {
     private void searchButtonClicked() {
         String keyword = searchTextField.getText().trim();
         searchSlangWord(keyword);
+        searchByDefinition(keyword);
+        addToSearchHistory(keyword);
     }
 
     private void searchSlangWord(String keyword) {
@@ -75,6 +81,26 @@ public class SlangDictionaryApp extends JFrame {
             result = "Slang words not found.";
         }
         outputTextArea.setText(result);
+    }
+
+    private void searchByDefinition(String keyword) {
+        StringBuilder resultBuilder = new StringBuilder();
+        for (Map.Entry<String, String> entry : slangDictionary.entrySet()) {
+            String slangWord = entry.getKey();
+            String definition = entry.getValue();
+            if (definition.contains(keyword)) {
+                resultBuilder.append(slangWord).append(": ").append(definition).append("\n");
+            }
+        }
+        String result = resultBuilder.toString().trim();
+        if (!result.isEmpty()) {
+            result = "\nDefinitions containing the keyword:\n" + result;
+            outputTextArea.append(result);
+        }
+    }
+
+    private void addToSearchHistory(String keyword) {
+        searchHistory.add(keyword);
     }
 
     private void loadSlangDictionaryFromFile(String filename) {
