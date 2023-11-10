@@ -17,6 +17,7 @@ public class SlangDictionaryApp extends JFrame {
     private Map<String, String> slangDictionary;
     private List<String> searchHistory;
     private JTextArea outputTextArea;
+    private JTextArea historyTextArea; // Thêm JTextArea để hiển thị history
     private JTextField searchTextField;
 
     public SlangDictionaryApp() {
@@ -53,9 +54,15 @@ public class SlangDictionaryApp extends JFrame {
 
         outputTextArea = new JTextArea();
         outputTextArea.setEditable(false);
-        JScrollPane scrollPane = new JScrollPane(outputTextArea);
-        scrollPane.setBounds(10, 40, 480, 310);
-        panel.add(scrollPane);
+        JScrollPane outputScrollPane = new JScrollPane(outputTextArea);
+        outputScrollPane.setBounds(10, 40, 480, 200);
+        panel.add(outputScrollPane);
+
+        historyTextArea = new JTextArea();
+        historyTextArea.setEditable(false);
+        JScrollPane historyScrollPane = new JScrollPane(historyTextArea);
+        historyScrollPane.setBounds(10, 250, 480, 100);
+        panel.add(historyScrollPane);
 
         searchButton.addActionListener(e -> searchButtonClicked());
     }
@@ -65,6 +72,7 @@ public class SlangDictionaryApp extends JFrame {
         searchSlangWord(keyword);
         searchByDefinition(keyword);
         addToSearchHistory(keyword);
+        updateHistoryTextArea(); // Cập nhật danh sách history
     }
 
     private void searchSlangWord(String keyword) {
@@ -101,6 +109,14 @@ public class SlangDictionaryApp extends JFrame {
 
     private void addToSearchHistory(String keyword) {
         searchHistory.add(keyword);
+    }
+
+    private void updateHistoryTextArea() {
+        StringBuilder historyBuilder = new StringBuilder();
+        for (String keyword : searchHistory) {
+            historyBuilder.append(keyword).append("\n");
+        }
+        historyTextArea.setText(historyBuilder.toString());
     }
 
     private void loadSlangDictionaryFromFile(String filename) {
