@@ -24,7 +24,7 @@ public class SlangDictionaryApp extends JFrame {
         slangDictionary = new HashMap<>();
         searchHistory = new ArrayList<>();
 
-        loadSlangDictionaryFromFile("slang_dictionary.txt");
+        loadSlangDictionaryFromFile("slang.txt");
 
         setTitle("Slang Dictionary");
         setSize(500, 400);
@@ -123,10 +123,10 @@ public class SlangDictionaryApp extends JFrame {
         try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
             String line;
             while ((line = reader.readLine()) != null) {
-                String[] parts = line.split("=");
+                String[] parts = line.split("`");
                 if (parts.length == 2) {
-                    String slangWord = parts[0].trim().toLowerCase();
-                    String definition = parts[1].trim().toLowerCase();
+                    String slangWord = parts[0].trim();
+                    String definition = parts[1].trim();
                     slangDictionary.put(slangWord, definition);
                 }
             }
