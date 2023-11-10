@@ -96,7 +96,7 @@ private void placeComponents(JPanel panel) {
     editButton.addActionListener(e -> editButtonClicked());
     deleteButton.addActionListener(e -> deleteButtonClicked());
     resetButton.addActionListener(e -> resetButtonClicked());
-
+    randomButton.addActionListener(e -> randomButtonClicked());
 }
 private void searchButtonClicked() {
     String keyword = searchTextField.getText().trim();
@@ -273,6 +273,17 @@ private void resetButtonClicked() {
         loadSlangDictionaryFromFile("slang.txt");
         updateHistoryTextArea();
         JOptionPane.showMessageDialog(this, "Từ điển đã được đặt lại thành công.");
+    }
+}
+
+private void randomButtonClicked() {
+    List<String> keys = new ArrayList<>(slangDictionary.keySet());
+    if (!keys.isEmpty()) {
+        int randomIndex = (int) (Math.random() * keys.size());
+        String randomSlangWord = keys.get(randomIndex);
+        JOptionPane.showMessageDialog(this, "Từ lóng ngẫu nhiên:\n" + randomSlangWord, "Từ lóng hôm nay", JOptionPane.INFORMATION_MESSAGE);
+    } else {
+        JOptionPane.showMessageDialog(this, "Từ điển trống rỗng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
     }
 }
 
