@@ -95,7 +95,8 @@ private void placeComponents(JPanel panel) {
     addButton.addActionListener(e -> addButtonClicked());
     editButton.addActionListener(e -> editButtonClicked());
     deleteButton.addActionListener(e -> deleteButtonClicked());
-    
+    resetButton.addActionListener(e -> resetButtonClicked());
+
 }
 private void searchButtonClicked() {
     String keyword = searchTextField.getText().trim();
@@ -265,6 +266,15 @@ private void deleteButtonClicked() {
     }
 }
 
+private void resetButtonClicked() {
+    int choice = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn đặt lại từ điển?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+    if (choice == JOptionPane.YES_OPTION) {
+        slangDictionary.clear();
+        loadSlangDictionaryFromFile("slang.txt");
+        updateHistoryTextArea();
+        JOptionPane.showMessageDialog(this, "Từ điển đã được đặt lại thành công.");
+    }
+}
 
 public static void main(String[] args) {
     new SlangDictionaryApp();
