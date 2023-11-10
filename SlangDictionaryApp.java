@@ -94,6 +94,8 @@ private void placeComponents(JPanel panel) {
     searchButton.addActionListener(e -> searchButtonClicked());
     addButton.addActionListener(e -> addButtonClicked());
     editButton.addActionListener(e -> editButtonClicked());
+    deleteButton.addActionListener(e -> deleteButtonClicked());
+    
 }
 private void searchButtonClicked() {
     String keyword = searchTextField.getText().trim();
@@ -241,6 +243,28 @@ private void editButtonClicked() {
         }
     }
 }
+
+private void deleteButtonClicked() {
+    String slangWord = JOptionPane.showInputDialog(this, "Nhập từ lóng cần xoá:");
+    if (slangWord != null) {
+        slangWord = slangWord.trim();
+        if (slangWord.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Từ lóng không được để trống.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        if (slangDictionary.containsKey(slangWord)) {
+            int choice = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xoá từ lóng này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+            if (choice == JOptionPane.YES_OPTION) {
+                slangDictionary.remove(slangWord);
+                saveSlangDictionaryToFile("slang.txt");
+                JOptionPane.showMessageDialog(this, "Từ lóng đã được xoá thành công.");
+            }
+        } else {
+            JOptionPane.showMessageDialog(this, "Từ lóng không tồn tại.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+}
+
 
 public static void main(String[] args) {
     new SlangDictionaryApp();
