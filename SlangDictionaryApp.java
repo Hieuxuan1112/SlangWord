@@ -17,6 +17,8 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
+import java.awt.Dimension;
+
 
 public class SlangDictionaryApp extends JFrame {
     private Map<String, String> slangDictionary;
@@ -66,20 +68,24 @@ public class SlangDictionaryApp extends JFrame {
 
     private JPanel createOutputPanel() {
         JPanel outputPanel = new JPanel(new BorderLayout());
-
+    
         outputTextArea = new JTextArea();
         outputTextArea.setEditable(false);
         JScrollPane outputScrollPane = new JScrollPane(outputTextArea);
-
+    
         historyTextArea = new JTextArea();
         historyTextArea.setEditable(false);
         JScrollPane historyScrollPane = new JScrollPane(historyTextArea);
-
+    
         outputPanel.add(outputScrollPane, BorderLayout.CENTER);
         outputPanel.add(historyScrollPane, BorderLayout.SOUTH);
-
+    
+        // Adjust the preferred size of historyScrollPane
+        historyScrollPane.setPreferredSize(new Dimension(historyScrollPane.getPreferredSize().width, 150));
+    
         return outputPanel;
     }
+    
 
     private JPanel createButtonPanel() {
         JPanel buttonPanel = new JPanel(new FlowLayout());

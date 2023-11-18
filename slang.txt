@@ -2337,6 +2337,7 @@ VOM`Vomit
 RCVD`Received
 WASTED`Drunk| stoned
 ENC`Enclosure
+fb`facebook
 ENE`Northerner
 ENO`Awesome| cool
 UMBJ`You Must Be Joking
