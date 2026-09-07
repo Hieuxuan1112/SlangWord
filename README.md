@@ -4,6 +4,19 @@ A slang dictionary you can search, edit and quiz yourself on — Spring Boot RES
 
 The dictionary ships with **7,641 real entries**, seeded from the original coursework data file.
 
+![Search by definition](docs/screenshots/01-search.png)
+
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/03-quiz.png" alt="Quiz with a graded answer"><br><em>Quiz — four options, graded instantly, both directions</em></td>
+<td width="50%"><img src="docs/screenshots/04-history.png" alt="Search history and quiz statistics"><br><em>Per-user search history and quiz statistics</em></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/05-add-word.png" alt="Add word form"><br><em>Add a word with any number of definitions</em></td>
+<td><img src="docs/screenshots/06-swagger.png" alt="Swagger UI"><br><em>Every endpoint documented via springdoc-openapi</em></td>
+</tr>
+</table>
+
 ---
 
 ## From coursework to platform
@@ -108,6 +121,10 @@ curl -s 'http://localhost:8080/api/slang-words?q=excavator&field=definition'
   "page": 0, "size": 20, "totalElements": 1, "totalPages": 1, "last": true
 }
 ```
+
+The same entry in the UI — one word, two definitions, edit and delete for signed-in users:
+
+![Word detail](docs/screenshots/02-word-detail.png)
 
 ## Local development
 
