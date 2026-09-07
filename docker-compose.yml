@@ -1,14 +1,17 @@
+# Credentials come from .env (gitignored). Copy .env.example to .env first.
+# Compose fails with a clear message if a required variable is missing, which is
+# deliberate: no secret in this file may have a working default.
 services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: slangword
-      POSTGRES_USER: slangword
-      POSTGRES_PASSWORD: slangword
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U slangword -d slangword"]
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -17,10 +20,10 @@ services:
     build: ./backend
     environment:
       SPRING_PROFILES_ACTIVE: docker
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/slangword
-      SPRING_DATASOURCE_USERNAME: slangword
-      SPRING_DATASOURCE_PASSWORD: slangword
-      APP_JWT_SECRET: ${APP_JWT_SECRET:-local-dev-secret-key-at-least-32-bytes-long}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?set APP_JWT_SECRET in .env}
     depends_on:
       db:
         condition: service_healthy

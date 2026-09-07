@@ -27,12 +27,18 @@ No JDK installed? See the container commands in the [root README](../README.md#n
 | Property | Environment variable | Default |
 |---|---|---|
 | `spring.datasource.url` | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://localhost:5432/slangword` |
-| `app.jwt.secret` | `APP_JWT_SECRET` | a development placeholder — **override in production** |
-| `app.jwt.expiration-seconds` | — | `86400` |
+| `spring.datasource.username` | `SPRING_DATASOURCE_USERNAME` | **none — required** |
+| `spring.datasource.password` | `SPRING_DATASOURCE_PASSWORD` | **none — required** |
+| `app.jwt.secret` | `APP_JWT_SECRET` | **none — required, min 32 chars** |
+| `app.jwt.expiration-seconds` | `APP_JWT_EXPIRATION_SECONDS` | `86400` |
 | `app.cors.allowed-origins` | `APP_CORS_ORIGINS` | `http://localhost:5173,http://localhost:8080` |
 | `app.seed.file` | — | `classpath:data/slang.txt` |
 
-The JWT secret must be at least 32 bytes; `Keys.hmacShaKeyFor` rejects anything shorter at startup.
+Credentials deliberately have no defaults. A fallback compiled into the jar becomes the
+signing key — or database password — of any deployment that forgets to set the variable,
+so the application fails at startup instead. `JwtProperties` is `@Validated`, turning a
+short or missing key into a startup error that names the property rather than an opaque
+`WeakKeyException` on the first login.
 
 ## Schema and data
 

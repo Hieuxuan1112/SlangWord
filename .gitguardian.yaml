@@ -1,0 +1,15 @@
+version: 2
+
+secret:
+  ignored-paths:
+    # Test fixtures only. These are throwaway values used to drive the auth
+    # integration tests; they authenticate against a Testcontainers database
+    # that exists for the duration of a single test run.
+    - "backend/src/test/**"
+    # The template that ships placeholders so contributors know what to set.
+    - ".env.example"
+
+  # Documentation quotes the compose file, so the same placeholder strings appear there.
+  ignored-matches:
+    - name: "docs placeholder credentials"
+      match: "CHANGE_ME"

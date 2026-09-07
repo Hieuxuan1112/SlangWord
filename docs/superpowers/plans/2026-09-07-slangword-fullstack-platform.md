@@ -150,8 +150,8 @@ spring:
     name: slangword-api
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/slangword}
-    username: ${SPRING_DATASOURCE_USERNAME:slangword}
-    password: ${SPRING_DATASOURCE_PASSWORD:slangword}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
   jpa:
     hibernate:
       ddl-auto: validate
@@ -166,7 +166,7 @@ server:
 
 app:
   jwt:
-    secret: ${APP_JWT_SECRET:change-me-in-production-this-must-be-at-least-32-bytes-long}
+    secret: ${APP_JWT_SECRET}   # no default: see the security note at the end of this plan
     expiration-seconds: 86400
   cors:
     allowed-origins: ${APP_CORS_ORIGINS:http://localhost:5173,http://localhost:8080}
@@ -189,8 +189,8 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: slangword
-      POSTGRES_USER: slangword
-      POSTGRES_PASSWORD: slangword
+      POSTGRES_USER: ${POSTGRES_USER:?set it in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}
     ports: ["5432:5432"]
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
@@ -269,7 +269,7 @@ app:
   seed:
     file: classpath:data/slang-test.txt
   jwt:
-    secret: test-secret-key-that-is-definitely-long-enough-for-hmac-sha256
+    secret: ${TEST_JWT_SECRET:a-deterministic-value-for-tests-only-see-application-test-yml}
     expiration-seconds: 3600
 logging.level.org.hibernate.SQL: warn
 ```
@@ -2650,8 +2650,8 @@ services:
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: slangword
-      POSTGRES_USER: slangword
-      POSTGRES_PASSWORD: slangword
+      POSTGRES_USER: ${POSTGRES_USER:?set it in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in .env}
     volumes: ["pgdata:/var/lib/postgresql/data"]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U slangword -d slangword"]
@@ -2664,9 +2664,9 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/slangword
-      SPRING_DATASOURCE_USERNAME: slangword
-      SPRING_DATASOURCE_PASSWORD: slangword
-      APP_JWT_SECRET: ${APP_JWT_SECRET:-local-dev-secret-key-at-least-32-bytes-long}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?set it in .env}
     depends_on:
       db: { condition: service_healthy }
     healthcheck:
@@ -2806,3 +2806,24 @@ Recorded after execution so the plan matches the repository.
 | nginx proxies `/api` only | **also `/swagger-ui`, `/v3/api-docs`, `/actuator`** | Those paths live outside `/api`, so the SPA fallback was swallowing them and returning `index.html` with a 200. |
 
 **Verified on completion:** `mvn verify` → 23 unit + 31 integration tests pass. `npm run lint` clean, `npm test -- --run` → 8 pass, `npm run build` succeeds. `docker compose up --build` serves the SPA, seeds 7,641 words, and answers the full authenticated flow (register → create → 409 on duplicate → overwrite → search → history → quiz → stats → 403 on admin reset → delete).
+
+---
+
+## Post-merge fix: secrets had defaults
+
+GitGuardian raised four "Username Password" incidents against the first push. None was a live credential — they were a local Postgres container's password and a development JWT key — but the practice was wrong, and one case was a real vulnerability: `app.jwt.secret` carried a fallback that ships **inside the jar**, so any deployment forgetting to set `APP_JWT_SECRET` would sign tokens with a key published in this repository.
+
+Fixed by removing every default:
+
+- `spring.datasource.username`, `spring.datasource.password` and `app.jwt.secret` resolve from the environment with no fallback, so a missing value fails startup.
+- `JwtProperties` is `@Validated` with `@NotBlank` and `@Size(min = 32)`, turning a missing or weak key into a startup error naming the variable and suggesting `openssl rand -base64 48`, instead of an opaque `WeakKeyException` on the first login.
+- Compose reads credentials from a gitignored `.env`, with `.env.example` committed as the template. `${VAR:?message}` makes a missing variable a clear refusal rather than an empty string.
+- `.gitguardian.yaml` scopes scanning past test fixtures.
+
+**Verified:** `docker compose config` refuses to run without `.env`. The image exits at startup for a short secret (`Reason: set the APP_JWT_SECRET environment variable to a random string of at least 32 characters`) and for an unset one. The full stack then starts on freshly generated credentials, re-seeds 7,641 words, and passes the smoke flow. All 54 backend tests still pass.
+
+**Operational note found while testing:** Postgres applies `POSTGRES_PASSWORD` only when initialising an empty data directory, so rotating the password needs `docker compose down -v`, not just `down`.
+
+### Still open
+
+The security pass surfaced items not yet addressed, listed here so they are not mistaken for oversights: no TLS, no rate limiting on `/api/auth/login`, no refresh token or revocation (a leaked JWT stays valid for 24 h), no API versioning, no coverage gate, and paginated search fetches its collection in memory (`HHH90003004`).

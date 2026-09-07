@@ -72,6 +72,12 @@ config/       beans and @ConfigurationProperties
 Only Docker is required.
 
 ```bash
+cp .env.example .env
+```
+
+Fill in `POSTGRES_PASSWORD` and `APP_JWT_SECRET` — the stack refuses to start on the placeholders. Generate a secret with `openssl rand -base64 48`. Then:
+
+```bash
 docker compose up --build
 ```
 
@@ -128,11 +134,14 @@ The same entry in the UI — one word, two definitions, edit and delete for sign
 
 ## Local development
 
-Backend (needs JDK 21 and a database):
+Backend (needs JDK 21 and a database). The API reads its credentials from the
+environment and has no defaults, so export them first:
 
 ```bash
 docker compose up -d db
-cd backend && mvn spring-boot:run
+cd backend
+SPRING_DATASOURCE_USERNAME=slangword SPRING_DATASOURCE_PASSWORD="$POSTGRES_PASSWORD" \
+APP_JWT_SECRET="$APP_JWT_SECRET" mvn spring-boot:run
 ```
 
 Frontend (Vite proxies `/api` to `localhost:8081`):
@@ -184,5 +193,6 @@ docs/          design spec and implementation plan
 - **A word owns a list of definitions.** The source data has entries such as ``JCB`J C Bamford | excavator manufacturer``, so definitions are a child table rather than one text column.
 - **The quiz is stateless.** A question carries its own answer and the client echoes it back, so no server-side question store is needed. A determined client could cheat; for a dictionary quiz the honest score is the user's own.
 - **401 versus 403.** Spring Security's stateless default answers 403 to anonymous requests. A custom entry point restores the REST convention: 401 when nobody is authenticated, 403 when the caller is authenticated but not permitted.
+- **No secret has a default.** `APP_JWT_SECRET` and the database password resolve from the environment with no fallback, and `JwtProperties` is `@Validated` to reject a key under 32 characters. A default baked into the jar becomes the signing key of every deployment that forgets to override it, so startup fails instead — naming the missing property.
 
 Full design rationale in [`docs/superpowers/specs/`](docs/superpowers/specs/); the task-by-task build plan is in [`docs/superpowers/plans/`](docs/superpowers/plans/).

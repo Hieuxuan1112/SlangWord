@@ -19,6 +19,7 @@ coverage/
 *.swp
 .DS_Store
 
-# Env
+# Env — real credentials live here, never in tracked files (.env.example is the template)
 .env
-.env.local
+.env.*
+!.env.example
