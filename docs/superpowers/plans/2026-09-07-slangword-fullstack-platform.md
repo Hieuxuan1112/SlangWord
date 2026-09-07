@@ -269,7 +269,7 @@ app:
   seed:
     file: classpath:data/slang-test.txt
   jwt:
-    secret: ${TEST_JWT_SECRET:a-deterministic-value-for-tests-only-see-application-test-yml}
+    secret: <any string of 32+ chars; see backend/src/test/resources/application-test.yml>
     expiration-seconds: 3600
 logging.level.org.hibernate.SQL: warn
 ```
@@ -2824,6 +2824,18 @@ Fixed by removing every default:
 
 **Operational note found while testing:** Postgres applies `POSTGRES_PASSWORD` only when initialising an empty data directory, so rotating the password needs `docker compose down -v`, not just `down`.
 
+### Follow-up: the security fix broke CI, and the scanner fired again
+
+Two things went wrong on the next push. Both are recorded because the fixes changed the pipeline.
+
+**1. `docker compose build` started failing.** Making every credential mandatory with `${VAR:?message}` means Compose refuses to *parse* the file without them — including for `build`, which needs none of them at runtime. CI has no `.env`, so the `images` job failed in five seconds. Fixed by generating throwaway credentials in the job with `openssl rand`, rather than committing any or weakening the requirement.
+
+**2. A new incident on the fix commit itself.** The scanner flagged a "Generic Password" in the very commit that removed the defaults. Two strings still read as `KEY=value` secrets: the `.env.example` placeholders, and a pseudo-value written into this plan while scrubbing an earlier one. Fixed by leaving `.env.example` values empty — the better template anyway, since Compose then refuses to start on an unfilled copy — and by replacing the plan's pseudo-value with prose.
+
+The lesson behind both: a template or document *containing a credential-shaped string* is indistinguishable from a leak to a scanner. Writing one by hand twice in a row is what motivated adding `ggshield` to CI, which catches it before a push instead of after.
+
+**3. A green build did not prove the tests ran.** The backend job finished in 33 seconds — fast enough to be worth questioning — and Actions logs are not readable without authentication. Rather than speculate, CI now counts the tests in the surefire and failsafe reports and fails if either suite drops below its floor, so a skipped or misconfigured suite can no longer report success. Verified locally against real reports (23 unit, 31 integration) and against a missing report directory.
+
 ### Still open
 
-The security pass surfaced items not yet addressed, listed here so they are not mistaken for oversights: no TLS, no rate limiting on `/api/auth/login`, no refresh token or revocation (a leaked JWT stays valid for 24 h), no API versioning, no coverage gate, and paginated search fetches its collection in memory (`HHH90003004`).
+Items surfaced but not yet addressed, listed so they are not mistaken for oversights: no TLS, no rate limiting on `/api/auth/login`, no refresh token or revocation (a leaked JWT stays valid for 24 h), no API versioning, no coverage gate, and paginated search fetches its collection in memory (`HHH90003004`).

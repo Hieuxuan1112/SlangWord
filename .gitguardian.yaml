@@ -1,15 +1,10 @@
 version: 2
 
+# Read by ggshield (the CLI used in the CI job below and in pre-commit hooks).
+# The GitGuardian dashboard's own GitHub scanning is configured separately in
+# its settings — this file does not silence dashboard incidents.
 secret:
   ignored-paths:
-    # Test fixtures only. These are throwaway values used to drive the auth
-    # integration tests; they authenticate against a Testcontainers database
-    # that exists for the duration of a single test run.
+    # Test fixtures only. These credentials authenticate against a Testcontainers
+    # database that exists for the duration of a single test run.
     - "backend/src/test/**"
-    # The template that ships placeholders so contributors know what to set.
-    - ".env.example"
-
-  # Documentation quotes the compose file, so the same placeholder strings appear there.
-  ignored-matches:
-    - name: "docs placeholder credentials"
-      match: "CHANGE_ME"

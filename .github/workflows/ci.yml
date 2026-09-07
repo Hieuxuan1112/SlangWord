@@ -7,6 +7,22 @@ on:
     branches: [main]
 
 jobs:
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    # Job-level env so the step's `if` can read it: secrets are not available
+    # directly in an `if` expression.
+    env:
+      GITGUARDIAN_API_KEY: ${{ secrets.GITGUARDIAN_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # ggshield scans a commit range, not just the tip
+      - name: Scan for hardcoded secrets
+        # Skips rather than fails when the key is absent, so a fork can still run CI.
+        if: ${{ env.GITGUARDIAN_API_KEY != '' }}
+        uses: GitGuardian/ggshield-action@v1
+
   backend:
     name: Backend (unit + integration)
     runs-on: ubuntu-latest
@@ -22,6 +38,30 @@ jobs:
       - name: Build and test
         working-directory: backend
         run: mvn -B verify
+
+      # A green `mvn verify` does not prove the integration tests ran: a
+      # misconfigured failsafe, or a profile that skips them, also reports
+      # success. Count what actually executed and fail if the suite vanished.
+      - name: Assert the test suites actually ran
+        working-directory: backend
+        run: |
+          count_tests() {
+            local dir=$1 min=$2 label=$3
+            if [ ! -d "$dir" ]; then
+              echo "::error::$label produced no reports in $dir"
+              exit 1
+            fi
+            local total
+            total=$(grep -ho 'tests="[0-9]*"' "$dir"/*.xml \
+                    | grep -o '[0-9]*' | awk '{s+=$1} END {print s+0}')
+            echo "$label: $total tests"
+            if [ "$total" -lt "$min" ]; then
+              echo "::error::$label ran $total tests, expected at least $min"
+              exit 1
+            fi
+          }
+          count_tests target/surefire-reports 20 "Unit tests"
+          count_tests target/failsafe-reports 25 "Integration tests"
 
   frontend:
     name: Frontend (lint + test + build)
@@ -47,4 +87,15 @@ jobs:
     needs: [backend, frontend]
     steps:
       - uses: actions/checkout@v4
+      # Compose refuses to parse the file without these, by design. Generate
+      # throwaway values rather than committing any: nothing here is reused.
+      - name: Generate throwaway credentials
+        run: |
+          {
+            echo "POSTGRES_DB=slangword"
+            echo "POSTGRES_USER=slangword"
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)"
+            echo "APP_JWT_SECRET=$(openssl rand -base64 48)"
+            echo "WEB_PORT=8080"
+          } > .env
       - run: docker compose build
