@@ -7,7 +7,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.slangword.AbstractIntegrationTest;
 import com.slangword.repository.RefreshTokenRepository;
 import com.slangword.repository.SearchHistoryRepository;
@@ -16,18 +15,11 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 
-@AutoConfigureMockMvc
 class RefreshTokenIT extends AbstractIntegrationTest {
 
-    @Autowired
-    MockMvc mockMvc;
 
-    @Autowired
-    ObjectMapper objectMapper;
 
     @Autowired
     UserRepository userRepository;
@@ -45,16 +37,7 @@ class RefreshTokenIT extends AbstractIntegrationTest {
         searchHistoryRepository.deleteAll();
         refreshTokenRepository.deleteAll();
         userRepository.deleteAll();
-        session = register("session-user");
-    }
-
-    private JsonNode register(String username) throws Exception {
-        String body = objectMapper.writeValueAsString(Map.of("username", username, "password", "secret123"));
-        String json = mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(json);
+        session = createAccount("session-user");
     }
 
     private String refreshBody(String token) throws Exception {
@@ -101,7 +84,7 @@ class RefreshTokenIT extends AbstractIntegrationTest {
         String newAccess = objectMapper.readTree(json).get("accessToken").asText();
 
         // 404, not 401: the token was accepted and the request reached the service.
-        mockMvc.perform(delete("/api/v1/slang-words/NOPE").header("Authorization", "Bearer " + newAccess))
+        mockMvc.perform(delete("/api/v1/slang-words/NOPE").header("Authorization", bearer(newAccess)))
                 .andExpect(status().isNotFound());
     }
 
@@ -144,10 +127,8 @@ class RefreshTokenIT extends AbstractIntegrationTest {
     void logoutLeavesOtherSessionsAlone() throws Exception {
         // A second login is a second family: signing out of one device must not
         // sign the user out everywhere.
-        String body = objectMapper.writeValueAsString(
-                Map.of("username", "session-user", "password", "secret123"));
         String secondJson = mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                        .contentType(MediaType.APPLICATION_JSON).content(credentials("session-user")))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         String secondDevice = objectMapper.readTree(secondJson).get("refreshToken").asText();

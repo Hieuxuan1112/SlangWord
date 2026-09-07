@@ -18,18 +18,11 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 
-@AutoConfigureMockMvc
 class SlangWordControllerIT extends AbstractIntegrationTest {
 
-    @Autowired
-    MockMvc mockMvc;
 
-    @Autowired
-    ObjectMapper objectMapper;
 
     @Autowired
     SeedService seedService;
@@ -47,12 +40,7 @@ class SlangWordControllerIT extends AbstractIntegrationTest {
         searchHistoryRepository.deleteAll();
         userRepository.deleteAll();
         seedService.reset();
-        String body = objectMapper.writeValueAsString(Map.of("username", "editor", "password", "secret123"));
-        String json = mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        token = objectMapper.readTree(json).get("accessToken").asText();
+        token = createAccountToken("editor");
     }
 
     @Test

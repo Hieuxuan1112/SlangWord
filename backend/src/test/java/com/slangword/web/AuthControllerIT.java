@@ -5,27 +5,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.slangword.AbstractIntegrationTest;
 import com.slangword.repository.SearchHistoryRepository;
 import com.slangword.repository.UserRepository;
-import java.util.Map;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 
-@AutoConfigureMockMvc
 class AuthControllerIT extends AbstractIntegrationTest {
-
-    @Autowired
-    MockMvc mockMvc;
-
-    @Autowired
-    ObjectMapper objectMapper;
 
     @Autowired
     UserRepository userRepository;
@@ -39,21 +28,12 @@ class AuthControllerIT extends AbstractIntegrationTest {
         userRepository.deleteAll();
     }
 
-    private String register(String username) throws Exception {
-        String body = objectMapper.writeValueAsString(Map.of("username", username, "password", "secret123"));
-        String json = mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(json).get("accessToken").asText();
-    }
-
     @Test
     void registersThenAuthorisesAProtectedCall() throws Exception {
-        String token = register("hieu");
+        String token = createAccountToken("hieu");
 
         // 404 rather than 401 proves the token was accepted and the request reached the service.
-        mockMvc.perform(delete("/api/v1/slang-words/NOPE").header("Authorization", "Bearer " + token))
+        mockMvc.perform(delete("/api/v1/slang-words/NOPE").header("Authorization", bearer(token)))
                 .andExpect(status().isNotFound());
     }
 
@@ -70,31 +50,28 @@ class AuthControllerIT extends AbstractIntegrationTest {
 
     @Test
     void rejectsDuplicateUsername() throws Exception {
-        register("hieu");
-        String body = objectMapper.writeValueAsString(Map.of("username", "hieu", "password", "secret123"));
+        createAccountToken("hieu");
 
         mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                        .contentType(MediaType.APPLICATION_JSON).content(credentials("hieu")))
                 .andExpect(status().isConflict());
     }
 
     @Test
     void rejectsShortPassword() throws Exception {
-        String body = objectMapper.writeValueAsString(Map.of("username", "someone", "password", "123"));
-
         mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(credentials("someone", "abc")))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value(Matchers.containsString("password")));
     }
 
     @Test
     void loginsWithCorrectCredentials() throws Exception {
-        register("hieu");
-        String body = objectMapper.writeValueAsString(Map.of("username", "hieu", "password", "secret123"));
+        createAccountToken("hieu");
 
         mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                        .contentType(MediaType.APPLICATION_JSON).content(credentials("hieu")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.role").value("USER"));
@@ -102,11 +79,11 @@ class AuthControllerIT extends AbstractIntegrationTest {
 
     @Test
     void loginFailsWithWrongPassword() throws Exception {
-        register("hieu");
-        String body = objectMapper.writeValueAsString(Map.of("username", "hieu", "password", "wrongpass"));
+        createAccountToken("hieu");
 
         mockMvc.perform(post("/api/v1/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(credentials("hieu", ACCOUNT_PASSWORD + "-wrong")))
                 .andExpect(status().isUnauthorized());
     }
 }

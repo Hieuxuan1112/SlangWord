@@ -2852,6 +2852,16 @@ The Trivy finding was the most valuable: Spring Boot 3.3.5 was nearly two years 
 
 One detail worth recording: Trivy names **tomcat 10.1.58** as the fix, but `tomcat-embed-core` has no such release — it goes 10.1.57 to 10.1.59. Pinning the version Trivy printed broke dependency resolution.
 
+### Follow-up: two green ticks that meant nothing
+
+**A pinned action that does not exist kills the job before any step runs.** The `images` job failed in three seconds at "Set up job" — earlier than any command. The cause was `aquasecurity/trivy-action@0.28.0`: the tag carries a leading `v`, so the reference could not be resolved. Fixed to `@v0.36.0`, and every action reference in the workflow is now checked against the GitHub API rather than written from memory — the same mistake as pinning `tomcat 10.1.58`, which also does not exist.
+
+**A skipped step still shows a green tick.** The `Secret scan` job reported success while its only step was skipped, because `GITGUARDIAN_API_KEY` is not configured. A pass that scans nothing is worse than a failure: it looks like evidence. The job now emits a workflow warning and a job-summary note when it skips, so the tick cannot be mistaken for a scan.
+
+**Test fixtures kept tripping the scanner.** Five integration test classes each repeated `Map.of("username", …, "password", "secret123")`, and each distinct pair became its own incident. Rather than suppress them, the duplication was removed: `AbstractIntegrationTest` now owns `createAccount`, `createAccountToken` and `credentials`, so the credential exists in one constant and the five classes stop repeating the register-and-read-token block. `@AutoConfigureMockMvc`, `MockMvc` and `ObjectMapper` moved to the base class at the same time. All 71 tests still pass.
+
+The pre-existing incidents on earlier commits stay visible in the pull request, because the scanner reads the whole branch history. Those are resolved on the dashboard, not by rewriting history — none is a live credential.
+
 ### Still open
 
 Items surfaced but not yet addressed, listed so they are not mistaken for oversights: no TLS, no refresh token or revocation (a leaked JWT stays valid for 24 h), the rate limiter counts per instance so a multi-replica deployment would need a shared store, `LIKE %x%` cannot use an index (a real corpus would want `pg_trgm` or full-text search), and no structured logging or metrics.

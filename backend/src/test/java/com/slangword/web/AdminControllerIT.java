@@ -16,19 +16,12 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.web.servlet.MockMvc;
 
-@AutoConfigureMockMvc
 class AdminControllerIT extends AbstractIntegrationTest {
 
-    @Autowired
-    MockMvc mockMvc;
 
-    @Autowired
-    ObjectMapper objectMapper;
 
     @Autowired
     UserRepository userRepository;
@@ -58,12 +51,7 @@ class AdminControllerIT extends AbstractIntegrationTest {
         userRepository.save(new User("root", passwordEncoder.encode("secret123"), Role.ADMIN));
         adminToken = jwtService.generateToken("root", "ADMIN");
 
-        String body = objectMapper.writeValueAsString(Map.of("username", "plain", "password", "secret123"));
-        String json = mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        userToken = objectMapper.readTree(json).get("accessToken").asText();
+        userToken = createAccountToken("plain");
     }
 
     @Test

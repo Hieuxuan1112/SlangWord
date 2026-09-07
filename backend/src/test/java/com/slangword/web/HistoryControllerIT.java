@@ -16,18 +16,11 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 
-@AutoConfigureMockMvc
 class HistoryControllerIT extends AbstractIntegrationTest {
 
-    @Autowired
-    MockMvc mockMvc;
 
-    @Autowired
-    ObjectMapper objectMapper;
 
     @Autowired
     UserRepository userRepository;
@@ -49,11 +42,7 @@ class HistoryControllerIT extends AbstractIntegrationTest {
         quizResultRepository.deleteAll();
         userRepository.deleteAll();
         seedService.reset();
-        String body = objectMapper.writeValueAsString(Map.of("username", "hieu", "password", "secret123"));
-        String json = mockMvc.perform(post("/api/v1/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON).content(body))
-                .andReturn().getResponse().getContentAsString();
-        token = objectMapper.readTree(json).get("accessToken").asText();
+        token = createAccountToken("hieu");
     }
 
     @Test

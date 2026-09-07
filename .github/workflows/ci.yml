@@ -23,6 +23,17 @@ jobs:
         if: ${{ env.GITGUARDIAN_API_KEY != '' }}
         uses: GitGuardian/ggshield-action@v1
 
+      # Without this, a skipped scan still shows a green tick — a pass that
+      # proves nothing. Say so in the job summary instead.
+      - name: Report that the scan was skipped
+        if: ${{ env.GITGUARDIAN_API_KEY == '' }}
+        run: |
+          echo "::warning::Secret scan SKIPPED — GITGUARDIAN_API_KEY is not set."
+          echo "### Secret scan skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "No \`GITGUARDIAN_API_KEY\` secret is configured, so nothing was scanned." >> "$GITHUB_STEP_SUMMARY"
+          echo "Add one under Settings → Secrets and variables → Actions to enable it." >> "$GITHUB_STEP_SUMMARY"
+
   backend:
     name: Backend (unit + integration)
     runs-on: ubuntu-latest
@@ -110,7 +121,9 @@ jobs:
       # Scans the image that would actually ship, not just the dependency
       # manifest: this also catches vulnerable OS packages in the base layer.
       - name: Scan the API image for vulnerabilities
-        uses: aquasecurity/trivy-action@0.28.0
+        # Tag carries a leading "v". Without it the action cannot be resolved and
+        # the job dies at "Set up job", before any step runs.
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: slangword-api:latest
           severity: HIGH,CRITICAL
