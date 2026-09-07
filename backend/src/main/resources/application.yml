@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: slangword-api
+  datasource:
+    # No defaults on purpose: a missing credential must fail startup loudly
+    # rather than let the app run on a value that is public in this repository.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/slangword}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate.jdbc.batch_size: 50
+      hibernate.order_inserts: true
+  flyway:
+    enabled: true
+
+server:
+  port: 8081
+
+app:
+  jwt:
+    # Never give this a default. A fallback baked into the jar would become the
+    # signing key of any deployment that forgot to set the variable.
+    secret: ${APP_JWT_SECRET}
+    # Short: a JWT cannot be revoked, so its blast radius is bounded by time.
+    expiration-seconds: ${APP_JWT_EXPIRATION_SECONDS:900}
+    # Long: this one is stored server-side and can be revoked at any moment.
+    refresh-expiration-seconds: ${APP_JWT_REFRESH_EXPIRATION_SECONDS:604800}
+  cors:
+    allowed-origins: ${APP_CORS_ORIGINS:http://localhost:5173,http://localhost:8080}
+  seed:
+    file: classpath:data/slang.txt
+  rate-limit:
+    auth:
+      # Caps brute-force attempts against login/register, per client address.
+      max-requests: ${APP_RATE_LIMIT_AUTH_MAX:10}
+      window: ${APP_RATE_LIMIT_AUTH_WINDOW:1m}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  level:
+    org.springframework.security: info

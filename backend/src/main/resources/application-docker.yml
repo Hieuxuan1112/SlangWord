@@ -1,0 +1,7 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://db:5432/slangword
+
+app:
+  cors:
+    allowed-origins: http://localhost:8080
