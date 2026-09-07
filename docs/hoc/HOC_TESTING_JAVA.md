@@ -20,7 +20,9 @@ Repo này: **71 test, 91.2% coverage**, build đỏ nếu tụt dưới ngưỡn
 
 Vì sao hình tháp chứ không hình chữ nhật: test unit nhanh nên chạy được mỗi lần lưu file. Test integration chậm hơn nhưng bắt được lỗi ở **chỗ ghép nối** — nơi unit test không nhìn thấy.
 
-Trong repo này, **cả 6 bug thật đều bị bắt bởi integration test**, không phải unit test. Vì chúng đều là bug ở chỗ ghép nối: Spring Security với controller, Hibernate với SQL, transaction với exception.
+Trong repo này, **6 trong 9 bug thật bị bắt bởi integration test**, không phải unit test — vì chúng đều nằm ở chỗ ghép nối: Spring Security với controller, Hibernate với SQL, transaction với exception.
+
+Ba bug còn lại nằm ở tầng CI (tag action sai, job xanh giả, cảnh báo scanner) nên **chính pipeline bắt được**. Đó là lý do CI cũng là một lớp kiểm thử, không chỉ là nơi chạy test.
 
 ## 2. Unit test — nhanh và cô lập
 
@@ -99,6 +101,7 @@ Test qua trên H2 rồi hỏng ở production là **tệ hơn không có test** 
 
 ```java
 @SpringBootTest
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 public abstract class AbstractIntegrationTest {
 
@@ -112,6 +115,15 @@ public abstract class AbstractIntegrationTest {
         registry.add("spring.datasource.username", POSTGRES::getUsername);
         registry.add("spring.datasource.password", POSTGRES::getPassword);
     }
+
+    protected static final String ACCOUNT_PASSWORD = "integration-test-account";
+
+    @Autowired protected MockMvc mockMvc;
+    @Autowired protected ObjectMapper objectMapper;
+
+    protected String createAccountToken(String username) throws Exception { ... }
+    protected String credentials(String username) throws Exception { ... }
+    protected String bearer(String token) { return "Bearer " + token; }
 }
 ```
 
@@ -119,10 +131,13 @@ Khởi động **PostgreSQL 16 thật** trong Docker, đúng version production.
 
 `static` block chứ không `@BeforeEach`: container khởi động **một lần** cho cả suite. `@DynamicPropertySource` là cần thiết vì port container là ngẫu nhiên — không thể ghi cứng vào file cấu hình.
 
+### Vì sao helper tài khoản nằm ở lớp cha
+
+Ban đầu 5 class IT đều tự viết lại đoạn đăng ký-đọc-token. Trình quét bí mật báo động vì mỗi file có một cặp `"username", ..., "password", "..."` — **cảnh báo bảo mật hoá ra là triệu chứng của trùng lặp**. Gom vào lớp cha thì hết cả hai: 5 file ngắn đi, và chỉ còn một hằng số credential duy nhất.
+
 ### Test qua HTTP
 
 ```java
-@AutoConfigureMockMvc
 class SlangWordControllerIT extends AbstractIntegrationTest {
 
     @Test
@@ -130,13 +145,13 @@ class SlangWordControllerIT extends AbstractIntegrationTest {
         String body = objectMapper.writeValueAsString(
                 Map.of("word", "BBC", "definitions", List.of("Big Bad Cat")));
 
-        mockMvc.perform(post("/api/v1/slang-words").header("Authorization", "Bearer " + token)
+        mockMvc.perform(post("/api/v1/slang-words").header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.detail").value("Slang word already exists: BBC"));
 
         mockMvc.perform(post("/api/v1/slang-words").param("overwrite", "true")
-                        .header("Authorization", "Bearer " + token)
+                        .header("Authorization", bearer(token))
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated());
     }
@@ -150,10 +165,10 @@ Test này đi qua **toàn bộ** chuỗi: filter bảo mật → routing → val
 ```java
 @Test
 void registersThenAuthorisesAProtectedCall() throws Exception {
-    String token = register("hieu");
+    String token = createAccountToken("hieu");
 
     // 404, không phải 401: chứng tỏ token ĐƯỢC CHẤP NHẬN và request đã tới service.
-    mockMvc.perform(delete("/api/v1/slang-words/NOPE").header("Authorization", "Bearer " + token))
+    mockMvc.perform(delete("/api/v1/slang-words/NOPE").header("Authorization", bearer(token)))
             .andExpect(status().isNotFound());
 }
 ```
@@ -292,7 +307,7 @@ Dùng `getByRole` chứ không `getByTestId` hay class CSS. Lý do: role là th�
 → 91.2% instruction, 76.6% branch, đo gộp unit và integration, build fail dưới 85/70. Giải thích vì sao đo gộp và vì sao branch quan trọng hơn line.
 
 **"Unit test khác integration test?"**
-→ Unit: một class, phụ thuộc là mock, không framework, mili giây. Integration: nhiều tầng ghép lại, hạ tầng thật, giây. Trong dự án này cả 6 bug thật đều bị bắt bởi integration test, vì chúng đều nằm ở chỗ ghép nối.
+→ Unit: một class, phụ thuộc là mock, không framework, mili giây. Integration: nhiều tầng ghép lại, hạ tầng thật, giây. Trong dự án này 6 trong 9 bug thật bị bắt bởi integration test, vì chúng nằm ở chỗ ghép nối; 3 bug còn lại ở tầng CI nên do chính pipeline bắt.
 
 **"Vì sao Testcontainers thay vì H2?"**
 → H2 không có `pg_trgm`, xử lý `lower()` và kiểu ngày giờ khác, và migration PostgreSQL không chạy trên nó. Test xanh trên H2 rồi hỏng ở production là tệ hơn không test.

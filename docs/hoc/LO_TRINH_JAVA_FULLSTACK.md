@@ -52,7 +52,7 @@ Sáu tầng. Học từ dưới lên — bỏ tầng dưới thì tầng trên c
 | 3. Framework | 🟡 Mới có SlangWord | Spring Boot, JPA, Security |
 | 4. Chất lượng | 🟢 Mạnh | 71 test, 91.2% coverage, eval harness |
 | 5. Hạ tầng | 🟢 Mạnh | Docker, GH Actions, Trivy, Azure, OIDC |
-| 6. Vận hành | 🟡 Có ở project AI, **thiếu ở Java** | Prometheus/Grafana bên travel-ai-agent |
+| 6. Vận hành | 🟡 Có ở project AI, **thiếu ở Java** | Prometheus/Grafana (travel-ai-agent), Jaeger tracing (eda-kafka-lab) |
 
 **Điểm yếu rõ nhất: tầng 1 và 3 — chính là Java.** Tầng 4, 5 bạn đã mạnh hơn nhiều fresher.
 
@@ -85,7 +85,7 @@ Sáu tầng. Học từ dưới lên — bỏ tầng dưới thì tầng trên c
 3. [HOC_REST_API_DESIGN.md](HOC_REST_API_DESIGN.md) — thiết kế API
 4. [HOC_SPRING_SECURITY.md](HOC_SPRING_SECURITY.md) — xác thực
 
-**Bắt buộc trước đó:** `HOC_SQL.md` bên travel-ai-agent. Không đọc được `EXPLAIN ANALYZE` thì không debug được ORM — đó là gốc của 3 trong 6 bug của dự án này.
+**Bắt buộc trước đó:** `HOC_SQL.md` bên travel-ai-agent. Không đọc được `EXPLAIN ANALYZE` thì không debug được ORM — đó là gốc của 3 trong 9 bug của dự án này.
 
 **Kiểm chứng:** thêm một tính năng mới vào SlangWord có đủ migration + test. Ví dụ: cho user "yêu thích" một từ (`favourite`), có endpoint thêm/xoá/liệt kê, có phân trang, có test.
 
@@ -100,6 +100,7 @@ Những thứ SlangWord **cố tình chưa làm**, ghi rõ trong plan doc. Tự 
 | Idempotency-Key cho `POST` | Xử lý retry đúng cách |
 | Cache với Redis | Khi nào cache có ích, khi nào gây bug |
 | Rate limit dùng Redis | Vì sao bộ đếm trong RAM sai khi có nhiều replica |
+| Phát event khi thêm/sửa từ, một consumer đánh index | Nối kiến thức Kafka ở `eda-kafka-lab` vào một app Java thật |
 | Soft delete + audit | Yêu cầu thật của domain tài chính |
 
 ### Giai đoạn 4 — Chỉ khi thật sự nhắm JD này (6–8 tuần)
@@ -108,7 +109,7 @@ Những thứ SlangWord **cố tình chưa làm**, ghi rõ trong plan doc. Tự 
 |---|---|---|
 | Vue 3: Composition API, Pinia, Vue Router | 3–4 tuần | Viết lại frontend SlangWord bằng Vue là bài tập chuẩn |
 | .NET Core: ASP.NET Web API, EF Core, DI | 4–6 tuần | Khái niệm giống Spring; cú pháp khác |
-| Microservices thật | 4+ tuần | Tách SlangWord thành 2 service + message broker |
+| Microservices thật | 4+ tuần | Tách SlangWord thành 2 service + message broker. Bạn đã có nền Kafka từ `eda-kafka-lab` — phần thiếu là ranh giới service và hợp đồng API, không phải messaging |
 
 **Đánh giá thật: 3 việc này mất 3–4 tháng, và vẫn không tạo ra 3 năm kinh nghiệm.** Chỉ làm nếu bạn thật sự muốn theo hướng .NET + Vue lâu dài, không phải để chạy theo một JD.
 
@@ -121,7 +122,7 @@ Xếp theo tỉ lệ giá trị / công sức:
 1. **Sửa mâu thuẫn tiêu đề CV** (1 giờ) — chọn A hoặc B ở mục 1.
 2. **Đọc [KIEN_TRUC_VA_QUYET_DINH.md](KIEN_TRUC_VA_QUYET_DINH.md)** (1 giờ) — bạn phải giải thích được từng quyết định trong repo của chính mình.
 3. **Tự chạy `EXPLAIN ANALYZE`** trên DB đang chạy (30 phút) — thấy tận mắt Seq Scan vs Index Scan.
-4. **Tập kể 6 bug** thành câu chuyện 2 phút mỗi cái (2 giờ) — đây là thứ tạo khác biệt trong phỏng vấn.
+4. **Tập kể 9 bug** thành câu chuyện 2 phút mỗi cái (3 giờ) — đây là thứ tạo khác biệt trong phỏng vấn.
 5. **Merge branch `feature/fullstack-platform` vào `main`** (15 phút) — người xem repo nhìn `main` đầu tiên. Hiện `main` vẫn là bản Swing cũ.
 
 Việc số 5 quan trọng hơn vẻ ngoài của nó: hiện tại ai mở github.com/Hieuxuan1112/SlangWord vẫn thấy **1 file Java và không có README**.
@@ -137,11 +138,11 @@ Việc số 5 quan trọng hơn vẻ ngoài của nó: hiện tại ai mở gith
 | **A1** Vue.js | *Chưa có. React/Next.js: website công ty BestHR 3 locale, SPA SlangWord* — ghi trung thực, đừng bỏ trống |
 | **A2** Unit test FE | *Vitest + React Testing Library (SlangWord); Playwright E2E (BestHR)* |
 | **B3** REST API + Swagger | *Spring Boot 3.5, `/api/v1` versioning, RFC 7807 ProblemDetail, springdoc OpenAPI. .NET: chưa có* |
-| **B4** Microservices + RDB | *PostgreSQL: thiết kế schema, Flyway migration, index pg_trgm. Microservices: mới ở mức lab, chưa tự thiết kế* |
+| **B4** Microservices + RDB | *PostgreSQL: thiết kế schema, Flyway migration, index pg_trgm đo bằng EXPLAIN ANALYZE. Hệ phân tán: tự thiết kế EDA 6 service trên Kafka, có DLQ và tracing. Chưa vận hành microservices ở production* |
 | **B5** Test + Quality Gate | ***91.2% instruction / 76.6% branch**, 31 unit + 40 integration (Testcontainers), JaCoCo gate fail dưới 85/70 trong GitHub Actions* |
 | **C6** Docker + CI/CD | *Multi-stage, non-root, healthcheck, Compose; GH Actions 4 job; GHCR + Azure Container Apps qua OIDC keyless* |
 | **C7** Secure coding | *BCrypt, JWT access + refresh có xoay vòng & phát hiện replay, rate limit, CSP/HSTS, secret không có default, ggshield + Trivy trong CI* |
-| **C8** Message broker | *Chưa dùng broker thật. Đã thiết kế webhook + dead-letter queue ở BestHR* |
+| **C8** Message broker | *Apache Kafka 3.9.1 (KRaft): prototype EDA 6 consumer group, tự hiện thực DLQ, retry + backoff, at-least-once, tua offset đọc lại lịch sử, Jaeger tracing — repo `eda-kafka-lab`. Cộng webhook + DLQ ở BestHR* |
 | **D9** Bảo hiểm/Ngân hàng | *Chưa có* |
 
 **Nguyên tắc điền: ghi rõ cái chưa có.** Người phỏng vấn sẽ đào đúng vào ô bạn tự chấm cao. Chấm 3 mà không đỡ được câu hỏi thì tệ hơn chấm 1 và thành thật.

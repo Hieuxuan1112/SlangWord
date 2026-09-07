@@ -317,7 +317,7 @@ Thuật toán: **fixed window** — đếm request theo cửa sổ 1 phút cho m
 
 ---
 
-## 10. Sáu bug thật gặp trong lúc xây
+## 10. Chín bug thật gặp trong lúc xây
 
 Phần giá trị nhất để kể trong phỏng vấn.
 
@@ -391,6 +391,60 @@ Default này nằm **trong file jar**. Ai deploy quên set biến môi trường
 Sửa: bỏ hẳn default (`${APP_JWT_SECRET}`) + `@Validated` với `@Size(min = 32)`. Thiếu là **chết lúc khởi động**, nêu rõ tên biến.
 
 **Nguyên tắc:** thà chết to và rõ còn hơn chạy âm thầm với cấu hình không an toàn.
+
+### 10.7. Ghim một phiên bản không tồn tại — hai lần
+
+**Lần 1:** Trivy báo lỗ hổng Tomcat, ghi *"Fixed Version: 10.1.58"*. Tôi ghim đúng số đó vào `pom.xml`. Build vỡ: `Could not resolve dependencies`.
+
+Vì artifact `tomcat-embed-core` **không có bản 10.1.58** — nó nhảy từ 10.1.57 sang 10.1.59. Trivy báo số của Tomcat gốc, không phải của artifact embed.
+
+**Lần 2:** viết `aquasecurity/trivy-action@0.28.0` trong CI. Job chết sau 3 giây ở bước **"Set up job"** — tức là trước cả khi chạy step nào. Tag thật là `v0.28.0`, **có chữ `v`**.
+
+Cùng một sai lầm: **ghim phiên bản theo trí nhớ thay vì tra**. Cách chữa là một thói quen, không phải một dòng code — mọi phiên bản giờ đều tra qua API trước khi ghim:
+
+```bash
+curl -s https://api.github.com/repos/aquasecurity/trivy-action/tags | grep '"name"'
+```
+
+**Cách nhận diện triệu chứng:** job fail ở *"Set up job"* nghĩa là lỗi ở **định nghĩa job**, không phải ở code. Không cần đọc log của step nào cả — chưa step nào chạy.
+
+### 10.8. Dấu tích xanh không chứng minh gì
+
+Job `Secret scan` báo **thành công** trong 13 giây. Nhưng bước duy nhất của nó bị `skipped`, vì `GITGUARDIAN_API_KEY` chưa được cấu hình.
+
+Nó không quét gì cả — mà nhìn vào thì y hệt như đã quét.
+
+**Đây nguy hiểm hơn một job đỏ.** Job đỏ thì người ta đi sửa. Job xanh giả thì người ta tin.
+
+Sửa: khi bỏ qua thì nói to lên.
+
+```yaml
+- name: Report that the scan was skipped
+  if: ${{ env.GITGUARDIAN_API_KEY == '' }}
+  run: |
+    echo "::warning::Secret scan SKIPPED — GITGUARDIAN_API_KEY is not set."
+```
+
+Cùng một nguyên tắc với chốt chặn đếm số test: **nếu không chứng minh được chuyện gì đã xảy ra thì thêm cái đo được.**
+
+### 10.9. Trùng lặp và cảnh báo bảo mật là cùng một vấn đề
+
+GitGuardian báo 5 secret trong các file `*IT.java`. Đều là fixture test — `Map.of("username", "editor", "password", "secret123")` — không phải credential thật.
+
+Phản xạ đầu tiên là thêm vào danh sách bỏ qua. Nhưng nhìn kỹ thì **5 class test đều lặp lại y hệt đoạn đăng ký-lấy-token**, mỗi file một bản sao.
+
+Cảnh báo bảo mật chỉ là **triệu chứng**; bệnh là trùng lặp. Chữa bệnh:
+
+```java
+// AbstractIntegrationTest.java — 5 class con dùng chung
+protected String createAccountToken(String username) throws Exception { ... }
+protected String credentials(String username) throws Exception { ... }
+protected String bearer(String token) { return "Bearer " + token; }
+```
+
+Kết quả: hết cặp literal username/password, **và** 5 file ngắn đi rõ rệt. `MockMvc`, `ObjectMapper`, `@AutoConfigureMockMvc` cũng dồn về lớp cha.
+
+**Bài học: khi một công cụ phàn nàn nhiều lần về cùng một thứ, hỏi xem nó có đang chỉ vào một vấn đề thiết kế không.** Bỏ qua cảnh báo thì mất luôn manh mối.
 
 ---
 

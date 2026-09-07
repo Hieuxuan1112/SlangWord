@@ -224,7 +224,7 @@ docs/          design spec and implementation plan
 
 ## Learning material
 
-`docs/hoc/` explains the backend through this codebase — architecture, and the reasoning behind each decision, including the six real bugs found while building it. Written in Vietnamese.
+`docs/hoc/` explains the backend through this codebase — architecture, and the reasoning behind each decision, including the nine real bugs found while building it. Written in Vietnamese.
 
 | Document | Covers |
 |---|---|
@@ -235,5 +235,6 @@ docs/          design spec and implementation plan
 | [REST API design](docs/hoc/HOC_REST_API_DESIGN.md) | Status codes, versioning, error contracts |
 | [Spring Security](docs/hoc/HOC_SPRING_SECURITY.md) | Filter chain, JWT, refresh tokens, rate limiting |
 | [Testing](docs/hoc/HOC_TESTING_JAVA.md) | JUnit 5, Mockito, Testcontainers, coverage gates |
+| [CI/CD and security](docs/hoc/HOC_CICD_VA_BAO_MAT.md) | The pipeline, quality gates, secret handling, vulnerability scanning |
 
 Full design rationale in [`docs/superpowers/specs/`](docs/superpowers/specs/); the task-by-task build plan is in [`docs/superpowers/plans/`](docs/superpowers/plans/).

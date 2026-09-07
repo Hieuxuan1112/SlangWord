@@ -13,6 +13,7 @@ Bộ tài liệu này dạy **backend Java** qua đúng code trong repo này. M�
 | 4 | [HOC_REST_API_DESIGN.md](HOC_REST_API_DESIGN.md) | Status code, versioning, error contract, phân trang |
 | 5 | [HOC_SPRING_SECURITY.md](HOC_SPRING_SECURITY.md) | Filter chain, JWT, access + refresh token, rate limit |
 | 6 | [HOC_TESTING_JAVA.md](HOC_TESTING_JAVA.md) | JUnit 5, Mockito, Testcontainers, coverage, tháp test |
+| 7 | [HOC_CICD_VA_BAO_MAT.md](HOC_CICD_VA_BAO_MAT.md) | Pipeline thật, quality gate, quản lý secret, quét lỗ hổng |
 
 ## Đã có bên `travel-ai-agent` — KHÔNG đọc lại ở đây
 
@@ -23,18 +24,19 @@ Repo [travel-ai-agent](https://github.com/Hieuxuan1112/travel-ai-agent) đã có
 | Big-O, cấu trúc dữ liệu, OOP/SOLID | `HOC_DSA_OOP.md` | Nguyên lý y hệt. Java thêm: `interface` vs `abstract class`, generics, `equals`/`hashCode` |
 | SQL: join, CTE, window function, index, transaction | `HOC_SQL.md` | **Nền tảng bắt buộc** trước khi đọc JPA. ORM chỉ sinh ra SQL — không hiểu SQL thì không debug được ORM |
 | Docker: image, multi-stage, non-root, healthcheck, Compose | `HOC_DOCKER.md` | `Dockerfile` của SlangWord dùng đúng các kỹ thuật đó |
-| CI/CD, quét container, deploy | `HOC_CICD_CLOUD.md` | SlangWord thêm: JaCoCo gate, ggshield, đếm số test |
+| CI/CD, quét container, deploy | `HOC_CICD_CLOUD.md` | Khái niệm chung. Pipeline cụ thể + 4 lần CI "nói dối" ở tài liệu 7 đây |
 | HTTP cơ bản, status code, validation | `HOC_FASTAPI_SSE.md` | Khái niệm HTTP giống nhau; phần *thiết kế* API nằm ở tài liệu 4 đây |
 | Prometheus, metrics | `HOC_PROMETHEUS.md` | SlangWord **chưa có** — đây là việc nên làm tiếp |
+| Kafka, event-driven, DLQ, offset | repo `eda-kafka-lab` (`README.md` + `MINH_CHUNG.md`) | Chưa có `docs/hoc` riêng. Là nguồn bằng chứng cho mục C8 của checklist |
 | Vector DB, prompt engineering, toán AI | `HOC_VECTOR_DB.md`, `HOC_PROMPT_ENGINEERING.md`, `HOC_TOAN_AI.md` | Không liên quan tới JD Java |
 
-**Cách dùng gọn nhất:** đọc `HOC_SQL.md` bên kia trước → rồi quay về đây đọc tài liệu 1 → 6.
+**Cách dùng gọn nhất:** đọc `HOC_SQL.md` bên kia trước → rồi quay về đây đọc tài liệu 1 → 7.
 
 ## Nguyên tắc viết
 
 1. **Mọi ví dụ là code thật trong repo**, có đường dẫn. Không có đoạn code bịa.
 2. **Luôn có phần "vì sao"** — và cả "vì sao không chọn cách kia".
-3. **Bug thật được giữ nguyên.** Dự án này gặp 6 bug trong lúc xây; chúng nằm trong tài liệu vì hiểu một bug thật đáng giá hơn đọc mười trang lý thuyết.
+3. **Bug thật được giữ nguyên.** Dự án này gặp 9 bug trong lúc xây; chúng nằm trong tài liệu vì hiểu một bug thật đáng giá hơn đọc mười trang lý thuyết.
 4. **Chỗ nào chưa làm thì nói rõ là chưa làm.** Không giả vờ hoàn hảo.
 
 ## Câu hỏi phỏng vấn
