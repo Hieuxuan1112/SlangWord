@@ -1,0 +1,13 @@
+app:
+  seed:
+    file: classpath:data/slang-test.txt
+  jwt:
+    secret: test-secret-key-that-is-definitely-long-enough-for-hmac-sha256
+    expiration-seconds: 3600
+  cors:
+    allowed-origins: http://localhost:5173
+
+logging:
+  level:
+    org.hibernate.SQL: warn
+    org.testcontainers: warn
