@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/quiz")
+@RequestMapping("/quiz")
 @Tag(name = "Quiz", description = "Four-option quiz in both directions")
 public class QuizController {
 

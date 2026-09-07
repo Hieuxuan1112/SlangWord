@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.slangword.domain.SlangWord;
@@ -21,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class SlangWordServiceTest {
@@ -34,6 +37,13 @@ class SlangWordServiceTest {
     private static SlangWord word(String text, String... definitions) {
         SlangWord entity = new SlangWord(text);
         entity.replaceDefinitions(List.of(definitions));
+        return entity;
+    }
+
+    /** The id is normally assigned by the database, so set it directly for tests. */
+    private static SlangWord word(Long id, String text, String... definitions) {
+        SlangWord entity = word(text, definitions);
+        ReflectionTestUtils.setField(entity, "id", id);
         return entity;
     }
 
@@ -57,8 +67,9 @@ class SlangWordServiceTest {
 
     @Test
     void searchByDefinitionUsesDefinitionQuery() {
-        when(repository.searchByDefinition(eq("babe"), any()))
-                .thenReturn(new PageImpl<>(List.of(word("BBE", "Babe"))));
+        when(repository.findIdsByDefinitionFragment(eq("babe"), any()))
+                .thenReturn(new PageImpl<>(List.of(1L)));
+        when(repository.findByIdIn(List.of(1L))).thenReturn(List.of(word(1L, "BBE", "Babe")));
 
         var page = service.search("babe", SlangWordService.SearchField.DEFINITION, PageRequest.of(0, 10));
 
@@ -68,11 +79,46 @@ class SlangWordServiceTest {
 
     @Test
     void blankQueryListsEverything() {
-        when(repository.findAll(any(PageRequest.class))).thenReturn(new PageImpl<>(List.of(word("A", "a"))));
+        when(repository.findAllIds(any(PageRequest.class))).thenReturn(new PageImpl<>(List.of(1L)));
+        when(repository.findByIdIn(List.of(1L))).thenReturn(List.of(word(1L, "A", "a")));
 
         var page = service.search("  ", SlangWordService.SearchField.WORD, PageRequest.of(0, 10));
 
         assertThat(page.content()).hasSize(1);
+    }
+
+    @Test
+    void searchKeepsTheOrderOfTheIdPage() {
+        // findByIdIn makes no ordering promise, so the service must restore it.
+        when(repository.findIdsByWordFragment(eq("B"), any()))
+                .thenReturn(new PageImpl<>(List.of(3L, 1L, 2L)));
+        when(repository.findByIdIn(List.of(3L, 1L, 2L))).thenReturn(List.of(
+                word(1L, "BBB", "b"), word(2L, "BBC", "c"), word(3L, "BBA", "a")));
+
+        var page = service.search("B", SlangWordService.SearchField.WORD, PageRequest.of(0, 10));
+
+        assertThat(page.content()).extracting("word").containsExactly("BBA", "BBB", "BBC");
+    }
+
+    @Test
+    void searchSkipsIdsThatVanishedBetweenTheTwoQueries() {
+        when(repository.findIdsByWordFragment(eq("B"), any()))
+                .thenReturn(new PageImpl<>(List.of(1L, 2L)));
+        when(repository.findByIdIn(List.of(1L, 2L))).thenReturn(List.of(word(1L, "BBB", "b")));
+
+        var page = service.search("B", SlangWordService.SearchField.WORD, PageRequest.of(0, 10));
+
+        assertThat(page.content()).extracting("word").containsExactly("BBB");
+    }
+
+    @Test
+    void emptyResultDoesNotHitTheFetchQuery() {
+        when(repository.findIdsByWordFragment(eq("zzz"), any())).thenReturn(new PageImpl<>(List.of()));
+
+        var page = service.search("zzz", SlangWordService.SearchField.WORD, PageRequest.of(0, 10));
+
+        assertThat(page.content()).isEmpty();
+        verify(repository, never()).findByIdIn(any());
     }
 
     @Test

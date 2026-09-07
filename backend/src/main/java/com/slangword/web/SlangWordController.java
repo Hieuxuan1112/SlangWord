@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/slang-words")
+@RequestMapping("/slang-words")
 @Tag(name = "Slang words", description = "Search and manage dictionary entries")
 public class SlangWordController {
 

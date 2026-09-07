@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/history")
+@RequestMapping("/history")
 @Tag(name = "History", description = "The caller's own search history and quiz statistics")
 public class HistoryController {
 

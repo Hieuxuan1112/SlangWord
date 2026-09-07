@@ -45,7 +45,10 @@ export interface QuizStats {
 }
 
 export interface AuthSession {
-  token: string
+  /** Short-lived JWT sent with every request. */
+  accessToken: string
+  /** Long-lived, revocable; exchanged at /auth/refresh when the access token expires. */
+  refreshToken: string
   username: string
   role: string
   expiresInSeconds: number

@@ -39,6 +39,13 @@ jobs:
         working-directory: backend
         run: mvn -B verify
 
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-report
+          path: backend/target/site/jacoco/
+
       # A green `mvn verify` does not prove the integration tests ran: a
       # misconfigured failsafe, or a profile that skips them, also reports
       # success. Count what actually executed and fail if the suite vanished.
@@ -99,3 +106,14 @@ jobs:
             echo "WEB_PORT=8080"
           } > .env
       - run: docker compose build
+
+      # Scans the image that would actually ship, not just the dependency
+      # manifest: this also catches vulnerable OS packages in the base layer.
+      - name: Scan the API image for vulnerabilities
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: slangword-api:latest
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true # nothing to do about a CVE with no patch yet
+          exit-code: '1'
+          format: table

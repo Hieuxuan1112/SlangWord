@@ -8,7 +8,11 @@ RUN mvn -B -DskipTests package
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
-RUN addgroup -S app && adduser -S app -G app
+# Base images lag behind the Alpine package repo, so OS packages are patched at
+# build time. Without this the image ships whatever openssl the base was built
+# with, and the Trivy job in CI fails on it.
+RUN apk --no-cache upgrade \
+    && addgroup -S app && adduser -S app -G app
 COPY --from=build /build/target/slangword-api.jar app.jar
 USER app
 EXPOSE 8081

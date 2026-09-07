@@ -59,27 +59,27 @@ class AdminControllerIT extends AbstractIntegrationTest {
         adminToken = jwtService.generateToken("root", "ADMIN");
 
         String body = objectMapper.writeValueAsString(Map.of("username", "plain", "password", "secret123"));
-        String json = mockMvc.perform(post("/api/auth/register")
+        String json = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        userToken = objectMapper.readTree(json).get("token").asText();
+        userToken = objectMapper.readTree(json).get("accessToken").asText();
     }
 
     @Test
     void rejectsResetWithoutAuthentication() throws Exception {
-        mockMvc.perform(post("/api/admin/reset")).andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/v1/admin/reset")).andExpect(status().isUnauthorized());
     }
 
     @Test
     void rejectsResetForNonAdmin() throws Exception {
-        mockMvc.perform(post("/api/admin/reset").header("Authorization", "Bearer " + userToken))
+        mockMvc.perform(post("/api/v1/admin/reset").header("Authorization", "Bearer " + userToken))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void allowsResetForAdmin() throws Exception {
-        mockMvc.perform(post("/api/admin/reset").header("Authorization", "Bearer " + adminToken))
+        mockMvc.perform(post("/api/v1/admin/reset").header("Authorization", "Bearer " + adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.seeded").value(3));
     }

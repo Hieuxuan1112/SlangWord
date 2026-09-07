@@ -18,6 +18,20 @@ public final class AuthDtos {
             @NotBlank String password) {
     }
 
-    public record AuthResponse(String token, String username, String role, long expiresInSeconds) {
+    public record RefreshRequest(@NotBlank String refreshToken) {
+    }
+
+    /**
+     * @param accessToken       short-lived JWT sent with every request
+     * @param refreshToken      long-lived, revocable, exchanged at /auth/refresh
+     * @param expiresInSeconds  lifetime of the access token, so the client can
+     *                          refresh ahead of expiry instead of waiting for a 401
+     */
+    public record AuthResponse(
+            String accessToken,
+            String refreshToken,
+            String username,
+            String role,
+            long expiresInSeconds) {
     }
 }

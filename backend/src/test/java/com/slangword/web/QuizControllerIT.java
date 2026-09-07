@@ -49,15 +49,15 @@ class QuizControllerIT extends AbstractIntegrationTest {
         userRepository.deleteAll();
         seedService.reset();
         String body = objectMapper.writeValueAsString(Map.of("username", "quizzer", "password", "secret123"));
-        String json = mockMvc.perform(post("/api/auth/register")
+        String json = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andReturn().getResponse().getContentAsString();
-        token = objectMapper.readTree(json).get("token").asText();
+        token = objectMapper.readTree(json).get("accessToken").asText();
     }
 
     @Test
     void servesAQuestionAnonymously() throws Exception {
-        mockMvc.perform(get("/api/quiz"))
+        mockMvc.perform(get("/api/v1/quiz"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.prompt").isNotEmpty())
                 .andExpect(jsonPath("$.correctAnswer").isNotEmpty())
@@ -66,7 +66,7 @@ class QuizControllerIT extends AbstractIntegrationTest {
 
     @Test
     void servesTheDefinitionModeQuestion() throws Exception {
-        mockMvc.perform(get("/api/quiz").param("mode", "definition-from-word"))
+        mockMvc.perform(get("/api/v1/quiz").param("mode", "definition-from-word"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.mode").value("DEFINITION_FROM_WORD"));
     }
@@ -79,7 +79,7 @@ class QuizControllerIT extends AbstractIntegrationTest {
                 "correctAnswer", "BBE",
                 "chosenAnswer", "BBE"));
 
-        mockMvc.perform(post("/api/quiz/answer").header("Authorization", "Bearer " + token)
+        mockMvc.perform(post("/api/v1/quiz/answer").header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.correct").value(true))
@@ -95,7 +95,7 @@ class QuizControllerIT extends AbstractIntegrationTest {
                 "correctAnswer", "BBE",
                 "chosenAnswer", "BBC"));
 
-        mockMvc.perform(post("/api/quiz/answer").header("Authorization", "Bearer " + token)
+        mockMvc.perform(post("/api/v1/quiz/answer").header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.correct").value(false))
@@ -110,7 +110,7 @@ class QuizControllerIT extends AbstractIntegrationTest {
                 "correctAnswer", "BBE",
                 "chosenAnswer", "BBE"));
 
-        mockMvc.perform(post("/api/quiz/answer")
+        mockMvc.perform(post("/api/v1/quiz/answer")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isUnauthorized());
     }

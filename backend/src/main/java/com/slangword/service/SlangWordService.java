@@ -8,7 +8,12 @@ import com.slangword.dto.SlangWordDtos.UpsertSlangWordRequest;
 import com.slangword.exception.ConflictException;
 import com.slangword.exception.NotFoundException;
 import com.slangword.repository.SlangWordRepository;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -37,13 +42,35 @@ public class SlangWordService {
 
     public PageResponse<SlangWordResponse> search(String query, SearchField field, Pageable pageable) {
         String fragment = query == null ? "" : query.trim();
-        Page<SlangWord> page = fragment.isEmpty()
-                ? repository.findAll(pageable)
+        Page<Long> ids = fragment.isEmpty()
+                ? repository.findAllIds(pageable)
                 : switch (field) {
-                    case WORD -> repository.findByWordContainingIgnoreCase(fragment, pageable);
-                    case DEFINITION -> repository.searchByDefinition(fragment, pageable);
+                    case WORD -> repository.findIdsByWordFragment(fragment, pageable);
+                    case DEFINITION -> repository.findIdsByDefinitionFragment(fragment, pageable);
                 };
-        return PageResponse.of(page, SlangWordResponse::from);
+        return fetchPage(ids);
+    }
+
+    /**
+     * Second half of the two-query search: the database has already applied
+     * LIMIT/OFFSET to the ids, so this fetches exactly one page of entities
+     * with their definitions. {@code findByIdIn} does not preserve order, so
+     * the order of the id page is restored here.
+     */
+    private PageResponse<SlangWordResponse> fetchPage(Page<Long> ids) {
+        if (ids.isEmpty()) {
+            return new PageResponse<>(List.of(), ids.getNumber(), ids.getSize(),
+                    ids.getTotalElements(), ids.getTotalPages(), ids.isLast());
+        }
+        Map<Long, SlangWord> byId = repository.findByIdIn(ids.getContent()).stream()
+                .collect(Collectors.toMap(SlangWord::getId, Function.identity()));
+        List<SlangWordResponse> content = ids.getContent().stream()
+                .map(byId::get)
+                .filter(Objects::nonNull)
+                .map(SlangWordResponse::from)
+                .toList();
+        return new PageResponse<>(content, ids.getNumber(), ids.getSize(),
+                ids.getTotalElements(), ids.getTotalPages(), ids.isLast());
     }
 
     public SlangWordResponse random() {

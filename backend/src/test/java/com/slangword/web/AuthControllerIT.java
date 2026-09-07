@@ -41,11 +41,11 @@ class AuthControllerIT extends AbstractIntegrationTest {
 
     private String register(String username) throws Exception {
         String body = objectMapper.writeValueAsString(Map.of("username", username, "password", "secret123"));
-        String json = mockMvc.perform(post("/api/auth/register")
+        String json = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(json).get("token").asText();
+        return objectMapper.readTree(json).get("accessToken").asText();
     }
 
     @Test
@@ -53,18 +53,18 @@ class AuthControllerIT extends AbstractIntegrationTest {
         String token = register("hieu");
 
         // 404 rather than 401 proves the token was accepted and the request reached the service.
-        mockMvc.perform(delete("/api/slang-words/NOPE").header("Authorization", "Bearer " + token))
+        mockMvc.perform(delete("/api/v1/slang-words/NOPE").header("Authorization", "Bearer " + token))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void rejectsProtectedCallWithoutToken() throws Exception {
-        mockMvc.perform(delete("/api/slang-words/NOPE")).andExpect(status().isUnauthorized());
+        mockMvc.perform(delete("/api/v1/slang-words/NOPE")).andExpect(status().isUnauthorized());
     }
 
     @Test
     void rejectsGarbageToken() throws Exception {
-        mockMvc.perform(delete("/api/slang-words/NOPE").header("Authorization", "Bearer not-a-jwt"))
+        mockMvc.perform(delete("/api/v1/slang-words/NOPE").header("Authorization", "Bearer not-a-jwt"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -73,7 +73,7 @@ class AuthControllerIT extends AbstractIntegrationTest {
         register("hieu");
         String body = objectMapper.writeValueAsString(Map.of("username", "hieu", "password", "secret123"));
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isConflict());
     }
@@ -82,7 +82,7 @@ class AuthControllerIT extends AbstractIntegrationTest {
     void rejectsShortPassword() throws Exception {
         String body = objectMapper.writeValueAsString(Map.of("username", "someone", "password", "123"));
 
-        mockMvc.perform(post("/api/auth/register")
+        mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.detail").value(Matchers.containsString("password")));
@@ -93,10 +93,10 @@ class AuthControllerIT extends AbstractIntegrationTest {
         register("hieu");
         String body = objectMapper.writeValueAsString(Map.of("username", "hieu", "password", "secret123"));
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andExpect(jsonPath("$.accessToken").isNotEmpty())
                 .andExpect(jsonPath("$.role").value("USER"));
     }
 
@@ -105,7 +105,7 @@ class AuthControllerIT extends AbstractIntegrationTest {
         register("hieu");
         String body = objectMapper.writeValueAsString(Map.of("username", "hieu", "password", "wrongpass"));
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/v1/auth/login")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(status().isUnauthorized());
     }

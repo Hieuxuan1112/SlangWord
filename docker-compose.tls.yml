@@ -1,0 +1,16 @@
+# HTTPS override. Generate a self-signed certificate first:
+#
+#   ./scripts/generate-dev-cert.sh
+#   docker compose -f docker-compose.yml -f docker-compose.tls.yml up --build
+#
+# Then open https://localhost:8443 and accept the browser warning — the
+# certificate is self-signed, so no browser will trust it, which is the point:
+# it proves the TLS path works without pretending to be a real identity.
+services:
+  web:
+    ports:
+      - "${WEB_PORT:-8080}:80"
+      - "${WEB_TLS_PORT:-8443}:443"
+    volumes:
+      - ./frontend/nginx-tls.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certs:/etc/nginx/certs:ro

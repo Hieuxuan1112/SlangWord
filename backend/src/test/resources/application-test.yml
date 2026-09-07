@@ -4,8 +4,15 @@ app:
   jwt:
     secret: test-secret-key-that-is-definitely-long-enough-for-hmac-sha256
     expiration-seconds: 3600
+    refresh-expiration-seconds: 86400
   cors:
     allowed-origins: http://localhost:5173
+  rate-limit:
+    auth:
+      # The suite registers many users from one address; the limiter has its
+      # own unit test, so it must not throttle the integration tests.
+      max-requests: 10000
+      window: 1m
 
 logging:
   level:

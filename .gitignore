@@ -23,3 +23,6 @@ coverage/
 .env
 .env.*
 !.env.example
+
+# Locally generated TLS certificates — never commit a private key
+certs/

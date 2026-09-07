@@ -18,8 +18,8 @@ No JDK installed? See the container commands in the [root README](../README.md#n
 | `repository` | Spring Data JPA. Paginated word/definition search, native `findRandom`. |
 | `service` | All business rules. Depends on repositories only, so unit tests need no Spring context. |
 | `web` | Controllers, DTO mapping, `GlobalExceptionHandler` → RFC 7807. |
-| `security` | `JwtService`, `JwtAuthFilter`, `AppUserDetailsService`, `CurrentUser`, 401/403 entry point. |
-| `config` | Beans and `@ConfigurationProperties` (`JwtProperties`, `CorsProperties`, `SeedProperties`). |
+| `security` | `JwtService`, `JwtAuthFilter`, `AppUserDetailsService`, `CurrentUser`, `RateLimitFilter`, 401/403 entry point. |
+| `config` | Beans and `@ConfigurationProperties` (`JwtProperties`, `CorsProperties`, `SeedProperties`, `RateLimitProperties`), plus `WebMvcConfig` which applies the `/api/v1` prefix. |
 | `exception` | `NotFoundException`, `ConflictException`. |
 
 ## Configuration
@@ -33,6 +33,8 @@ No JDK installed? See the container commands in the [root README](../README.md#n
 | `app.jwt.expiration-seconds` | `APP_JWT_EXPIRATION_SECONDS` | `86400` |
 | `app.cors.allowed-origins` | `APP_CORS_ORIGINS` | `http://localhost:5173,http://localhost:8080` |
 | `app.seed.file` | — | `classpath:data/slang.txt` |
+| `app.rate-limit.auth.max-requests` | `APP_RATE_LIMIT_AUTH_MAX` | `10` |
+| `app.rate-limit.auth.window` | `APP_RATE_LIMIT_AUTH_WINDOW` | `1m` |
 
 Credentials deliberately have no defaults. A fallback compiled into the jar becomes the
 signing key — or database password — of any deployment that forgets to set the variable,
@@ -42,7 +44,22 @@ short or missing key into a startup error that names the property rather than an
 
 ## Schema and data
 
-Flyway (`db/migration/V1__init.sql`) owns the schema and nothing else. `SeedService` loads `slang.txt` on startup when `slang_word` is empty, and the same routine backs `POST /api/admin/reset`.
+Flyway (`db/migration/V1__init.sql`) owns the schema and nothing else. `SeedService` loads `slang.txt` on startup when `slang_word` is empty, and the same routine backs `POST /api/v1/admin/reset`.
+
+## Coverage
+
+`mvn verify` merges the unit and integration execution data into one report at
+`target/site/jacoco/index.html` and fails below the floors in `pom.xml`
+(85% instruction, 70% branch). Actual: **91.8% instruction, 77.4% branch, 91.4% line**.
+
+Measuring both suites together is deliberate: most behaviour here is only
+exercised through MockMvc, so a unit-only figure would understate it badly.
+
+## Dependency pinning
+
+`tomcat.version` and `postgresql.version` in `pom.xml` override what Spring Boot
+manages, to pick up security fixes ahead of the next Boot release. Each override
+names the CVE it answers. Remove it once Boot's own pin catches up.
 
 ## Tests
 

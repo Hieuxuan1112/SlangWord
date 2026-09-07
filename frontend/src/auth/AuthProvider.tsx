@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { TOKEN_KEY, setUnauthorizedHandler } from '../api/client'
+import { REFRESH_KEY, clearSession, setUnauthorizedHandler, storeSession } from '../api/client'
 import * as authApi from '../api/auth'
 import { AuthContext } from './AuthContext'
 import type { AuthState } from './AuthContext'
@@ -26,7 +26,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<StoredUser | null>(readStoredUser)
 
   const logout = useCallback(() => {
-    localStorage.removeItem(TOKEN_KEY)
+    // Tell the server first so the refresh token is revoked rather than left
+    // valid for a week, but never block sign-out on the network.
+    const refreshToken = localStorage.getItem(REFRESH_KEY)
+    if (refreshToken) {
+      authApi.logout(refreshToken).catch(() => undefined)
+    }
+    clearSession()
     localStorage.removeItem(USER_KEY)
     setSession(null)
   }, [])
@@ -37,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [logout])
 
   const persist = useCallback((result: AuthSession) => {
-    localStorage.setItem(TOKEN_KEY, result.token)
+    storeSession(result)
     const user: StoredUser = { username: result.username, role: result.role }
     localStorage.setItem(USER_KEY, JSON.stringify(user))
     setSession(user)

@@ -2836,6 +2836,22 @@ The lesson behind both: a template or document *containing a credential-shaped s
 
 **3. A green build did not prove the tests ran.** The backend job finished in 33 seconds — fast enough to be worth questioning — and Actions logs are not readable without authentication. Rather than speculate, CI now counts the tests in the surefire and failsafe reports and fails if either suite drops below its floor, so a skipped or misconfigured suite can no longer report success. Verified locally against real reports (23 unit, 31 integration) and against a missing report directory.
 
+### Follow-up: hardening pass against the employer checklist
+
+Five items from the "still open" list were closed. Each is verified, not asserted.
+
+| Change | Why | Evidence |
+|---|---|---|
+| Search pages over ids, then fetches | `HHH90003004` meant Hibernate read every matching row to return twenty | Warning absent from the logs after four paginated searches; two new unit tests pin ordering and the empty-page short circuit |
+| `/api/v1` prefix, applied once in `WebMvcConfig` | Versioning, asked for explicitly | Every integration test moved to the versioned path; the old path now answers 401 |
+| Rate limit on `/api/v1/auth/**` | Login was the only unauthenticated write, so the cheapest thing to brute-force | Five unit tests; against the running stack, ten attempts pass and the rest return 429 with `Retry-After`, while search is untouched |
+| JaCoCo over unit + integration, merged, gated at `verify` | The checklist asks for a coverage figure | 91.8% instruction, 77.4% branch, 91.4% line; build fails below 85/70 |
+| Trivy scans the built image in CI | Catches vulnerable OS packages, not just declared dependencies | Found one CRITICAL and four HIGH; now reports 0 |
+
+The Trivy finding was the most valuable: Spring Boot 3.3.5 was nearly two years old and carried a critical `spring-security-web` advisory. Upgrading to 3.5.16 cleared the Spring CVEs; `tomcat.version` and `postgresql.version` are pinned above what Boot manages for the remainder, and `apk --no-cache upgrade` in the runtime stage patches the base image's OpenSSL. All 63 tests pass on the upgrade with no code changes.
+
+One detail worth recording: Trivy names **tomcat 10.1.58** as the fix, but `tomcat-embed-core` has no such release — it goes 10.1.57 to 10.1.59. Pinning the version Trivy printed broke dependency resolution.
+
 ### Still open
 
-Items surfaced but not yet addressed, listed so they are not mistaken for oversights: no TLS, no rate limiting on `/api/auth/login`, no refresh token or revocation (a leaked JWT stays valid for 24 h), no API versioning, no coverage gate, and paginated search fetches its collection in memory (`HHH90003004`).
+Items surfaced but not yet addressed, listed so they are not mistaken for oversights: no TLS, no refresh token or revocation (a leaked JWT stays valid for 24 h), the rate limiter counts per instance so a multi-replica deployment would need a shared store, `LIKE %x%` cannot use an index (a real corpus would want `pg_trgm` or full-text search), and no structured logging or metrics.

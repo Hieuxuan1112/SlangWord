@@ -10,6 +10,11 @@ import org.springframework.validation.annotation.Validated;
  * HMAC-SHA256 needs a key of at least 32 bytes; {@code Keys.hmacShaKeyFor} throws
  * otherwise. Validating here turns that into a startup failure naming the property,
  * instead of an opaque exception on the first login attempt.
+ *
+ * @param expirationSeconds        access token lifetime. Short, because a JWT cannot
+ *                                 be revoked before it expires.
+ * @param refreshExpirationSeconds refresh token lifetime. Long, because that token
+ *                                 is stored server-side and can be revoked.
  */
 @Validated
 @ConfigurationProperties(prefix = "app.jwt")
@@ -21,5 +26,8 @@ public record JwtProperties(
         String secret,
 
         @Min(value = 60, message = "app.jwt.expiration-seconds must be at least 60")
-        long expirationSeconds) {
+        long expirationSeconds,
+
+        @Min(value = 300, message = "app.jwt.refresh-expiration-seconds must be at least 300")
+        long refreshExpirationSeconds) {
 }

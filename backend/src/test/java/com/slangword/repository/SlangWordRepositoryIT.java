@@ -38,11 +38,28 @@ class SlangWordRepositoryIT extends AbstractIntegrationTest {
     void findsByDefinitionFragment() {
         SlangWord word = new SlangWord("BBE");
         word.replaceDefinitions(List.of("Babe"));
-        repository.save(word);
+        SlangWord saved = repository.save(word);
 
-        assertThat(repository.searchByDefinition("bab", PageRequest.of(0, 10)))
-                .extracting(SlangWord::getWord)
-                .containsExactly("BBE");
+        assertThat(repository.findIdsByDefinitionFragment("bab", PageRequest.of(0, 10)))
+                .containsExactly(saved.getId());
+    }
+
+    @Test
+    void pagesIdsAtTheDatabaseRatherThanInMemory() {
+        for (int i = 0; i < 25; i++) {
+            SlangWord word = new SlangWord("BB" + i);
+            word.replaceDefinitions(List.of("definition " + i, "second sense " + i));
+            repository.save(word);
+        }
+
+        var firstPage = repository.findIdsByWordFragment("BB", PageRequest.of(0, 10));
+        var lastPage = repository.findIdsByWordFragment("BB", PageRequest.of(2, 10));
+
+        assertThat(firstPage.getTotalElements()).isEqualTo(25);
+        assertThat(firstPage.getContent()).hasSize(10);
+        assertThat(lastPage.getContent()).hasSize(5);
+        // Every word has two definitions; paging over ids must not multiply rows.
+        assertThat(repository.findByIdIn(firstPage.getContent())).hasSize(10);
     }
 
     @Test

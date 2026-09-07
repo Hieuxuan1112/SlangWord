@@ -50,18 +50,18 @@ class HistoryControllerIT extends AbstractIntegrationTest {
         userRepository.deleteAll();
         seedService.reset();
         String body = objectMapper.writeValueAsString(Map.of("username", "hieu", "password", "secret123"));
-        String json = mockMvc.perform(post("/api/auth/register")
+        String json = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType(MediaType.APPLICATION_JSON).content(body))
                 .andReturn().getResponse().getContentAsString();
-        token = objectMapper.readTree(json).get("token").asText();
+        token = objectMapper.readTree(json).get("accessToken").asText();
     }
 
     @Test
     void recordsSearchForAuthenticatedUser() throws Exception {
-        mockMvc.perform(get("/api/slang-words").param("q", "BB").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/v1/slang-words").param("q", "BB").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/history").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/v1/history").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].keyword").value("BB"))
                 .andExpect(jsonPath("$.content[0].resultCount").value(2));
@@ -69,19 +69,19 @@ class HistoryControllerIT extends AbstractIntegrationTest {
 
     @Test
     void doesNotRecordSearchForAnonymousUser() throws Exception {
-        mockMvc.perform(get("/api/slang-words").param("q", "BB")).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/slang-words").param("q", "BB")).andExpect(status().isOk());
 
         assertThat(historyRepository.count()).isZero();
     }
 
     @Test
     void requiresAuthenticationToReadHistory() throws Exception {
-        mockMvc.perform(get("/api/history")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/history")).andExpect(status().isUnauthorized());
     }
 
     @Test
     void ignoresBlankKeyword() throws Exception {
-        mockMvc.perform(get("/api/slang-words").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/v1/slang-words").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk());
 
         assertThat(historyRepository.count()).isZero();
@@ -89,7 +89,7 @@ class HistoryControllerIT extends AbstractIntegrationTest {
 
     @Test
     void reportsZeroQuizStatsForAFreshUser() throws Exception {
-        mockMvc.perform(get("/api/history/quiz-stats").header("Authorization", "Bearer " + token))
+        mockMvc.perform(get("/api/v1/history/quiz-stats").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalAnswered").value(0))
                 .andExpect(jsonPath("$.accuracy").value(0.0));

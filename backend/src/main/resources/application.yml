@@ -25,11 +25,19 @@ app:
     # Never give this a default. A fallback baked into the jar would become the
     # signing key of any deployment that forgot to set the variable.
     secret: ${APP_JWT_SECRET}
-    expiration-seconds: ${APP_JWT_EXPIRATION_SECONDS:86400}
+    # Short: a JWT cannot be revoked, so its blast radius is bounded by time.
+    expiration-seconds: ${APP_JWT_EXPIRATION_SECONDS:900}
+    # Long: this one is stored server-side and can be revoked at any moment.
+    refresh-expiration-seconds: ${APP_JWT_REFRESH_EXPIRATION_SECONDS:604800}
   cors:
     allowed-origins: ${APP_CORS_ORIGINS:http://localhost:5173,http://localhost:8080}
   seed:
     file: classpath:data/slang.txt
+  rate-limit:
+    auth:
+      # Caps brute-force attempts against login/register, per client address.
+      max-requests: ${APP_RATE_LIMIT_AUTH_MAX:10}
+      window: ${APP_RATE_LIMIT_AUTH_WINDOW:1m}
 
 management:
   endpoints:

@@ -12,6 +12,8 @@ import com.slangword.dto.AuthDtos.RegisterRequest;
 import com.slangword.exception.ConflictException;
 import com.slangword.repository.UserRepository;
 import com.slangword.security.JwtService;
+import com.slangword.service.RefreshTokenService.IssuedToken;
+import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +35,9 @@ class AuthServiceTest {
     @Mock
     JwtService jwtService;
 
+    @Mock
+    RefreshTokenService refreshTokenService;
+
     @InjectMocks
     AuthService service;
 
@@ -51,10 +56,13 @@ class AuthServiceTest {
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(jwtService.generateToken("hieu", "USER")).thenReturn("jwt-token");
         when(jwtService.getExpirationSeconds()).thenReturn(3600L);
+        when(refreshTokenService.issue(any()))
+                .thenReturn(new IssuedToken("refresh-token", Instant.now().plusSeconds(60)));
 
         var response = service.register(new RegisterRequest("hieu", "secret123"));
 
-        assertThat(response.token()).isEqualTo("jwt-token");
+        assertThat(response.accessToken()).isEqualTo("jwt-token");
+        assertThat(response.refreshToken()).isEqualTo("refresh-token");
         assertThat(response.role()).isEqualTo("USER");
     }
 
